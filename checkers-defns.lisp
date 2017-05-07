@@ -4,7 +4,7 @@
 
 ;;  GLOBAL CONSTANTS
 
-;;  The players
+;;  The players / pieces
 
 (defconstant *black* 0)
 (defconstant *red* 1)
@@ -30,8 +30,7 @@
 ;; -----------------------------------------------------------------------
 ;;  Fields:
 ;;   BOARD   --  An 8-by-8 array containing 
-;;                      *red*, *black*, *rking*, *bking*, or *blank*
-;;   KING-POSNS -- necessary?
+;;                      *red*, *black*, *rking*, *bking*, or nil
 ;;   WHOSE-TURN?  --  Either *red* or *black*
 ;;   MOVE-HISTORY  -- A list of the moves that got us from initial 
 ;;      state to the current state
@@ -41,8 +40,8 @@
 
 (defstruct (checkers (:print-function print-checkers))
   (board (make-array '(8 8) :initial-element nil))
-  ;(king-posns nil) ; initially no kings -- vector of two lists:
-                   ; first list black kings, second red, each of form (r c)
+  (red-alive 12)
+  (black-alive 12)
   (whose-turn? *black*) ; black moves first
   (move-history nil) ; for alpha-beta minimax
   )
@@ -59,22 +58,27 @@
       (dotimes (c 8)
 	
 	(cond
+	 ;; red pieces go on first 3 rows of dark squares
 	 ((or (and (evenp r) (oddp c) (< r 3))
 	      (and (oddp r) (evenp c) (< r 3)))
 	  
-	  (move-token game r c nil *red* nil))
+	  (move-token! game r c nil *red* nil))
 	 
+	 ;; black pieces go on last 3 rows of dark squares
 	 ((or (and (evenp r) (oddp c) (> r 4))
 	      (and (oddp r) (evenp c) (> r 4)))
 	  
-	  (move-token game r c nil *black* nil)))))
+	  (move-token! game r c nil *black* nil)))))
 		   
     ;; RETURN THE GAME!
     game))
 
 ;; CHOOSE-PIECE
+;; INPUT: PLR, *red* or *black*
+;;        KING?, T if desired piece is a king
+;; OUTPUT: *red*, *black*, *bking*, or *rking* depending on PLR and KING?
 
-(defmethod choose-piece ((game checkers) plr king?)
+(defun choose-piece (plr king?)
   (cond
    ((and king? (= plr *black*))
     *bking*)
@@ -86,22 +90,52 @@
     *red*)))
 
 ;; PLACE-TOKEN
+;; INPUT: GAME, a checkers struct
+;;        R, C, ints representing the row and col where token will be moved
+;;        PLOC, a list of the form (row col) representing the token's 
+;;              previous location
+;;        PLR, *red* or *black*
+;;        KING?, T if token to be moved is a king
+;; OUTPUT: a modified version of GAME where the appropriate piece has been
+;;         placed at (r c) and ploc has been set to nil.
 
-(defmethod move-token ((game checkers) r c ploc plr king?)
+(defmethod move-token! ((game checkers) r c ploc plr king?)
   (let* ((bored (checkers-board game))
-	 ;(kings (svref (checkers-kings-posns game) plr))
-	 (piece (choose-piece game plr king?)))
+	 (piece (choose-piece plr king?)))
     
     ; set (r c) to plr's piece, king if appropriate
     (setf (aref bored r c) piece)
     
-    ; set ploc = (pr pc) to nil if ploc non-nil
+    ; set board at ploc to nil if ploc is non-nil
     (when ploc
       (setf (aref bored (first ploc) (second ploc)) nil))
     
+    ; return the game
     game))
     
+;; IS-KING?
+;; INPUT: PIECE, *red*, *black*, *bking*, *rking*, or nil
+;; OUTPUT: T if PIECE is *bking* or *rking*
+
+(defun is-king? (piece)
+  (if piece
+      (> piece 1)
+      nil))
+
+;; MAKE-KING
+;; INPUT: GAME, a checkers struct
+;;        PLR, *red* or *black*
+;;        R, C, ints representing the row and col of piece to be kinged
+;; OUTPUT: a modified version of GAME where the piece at (r c) has been kinged
+
+(defmethod make-king ((game checkers) plr r c)
+  (let ((bored (checkers-board game))
+	(piece (choose-piece plr t)))
     
+    (setf (aref bored r c) piece)
+    
+    game))
+
 ;do-move! / undo-move!
 
 
@@ -119,6 +153,10 @@
   nil)
 
 ;; TOGGLE-TURN
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: none
+;; SIDE EFFECT: sets the whose-turn? field of the checkers struct
+;;              to *red* if currently *black* and vice versa
 
 (defmethod toggle-turn! ((game checkers))
   (if (= *black* (checkers-whose-turn? game))
@@ -131,13 +169,16 @@
 
 ;eval-func (count pieces, kings count as more, normalize?)
 
-;; DISPLAY
+;; PRINT-CHECKERS
+;; used by the checkers struct to display nicely a game of checkers.
 
 (defun print-checkers (game str depth)
   (declare (ignore depth))
   
-  (let* ((bored (checkers-board game))
-	 (plr (checkers-whose-turn? game)))
+  (let ((bored (checkers-board game))
+	(red-live (checkers-red-alive game))
+	(black-live (checkers-black-alive game))
+	(plr (checkers-whose-turn? game)))
     
     (format str "    0 1 2 3 4 5 6 7~%")
     (format str "  -------------------~%")
@@ -151,7 +192,11 @@
 	    (format str "_ "))))
       (format str "~%"))
     
-    (format str "  -------------------~%")))
+    (format str "  -------------------~%")
+    
+    (format str "Red Alive: ~A, Black Alive: ~A~%" red-live black-live)
+    (format str "It's ~A's turn!~%"
+	    (if (= *black* plr) "black" "red"))))
 	 
 
 ;MCTS: random-move, do-random-move!, default-policy,
