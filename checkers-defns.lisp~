@@ -44,13 +44,13 @@
   (move-history nil)
   )
 
-game struct
-    board (R,B,r,b) - 8x8 2d array
-    (red-pieces, black-pieces?)
-    pieces (each slot represents a dark board spot?)
-    king-pieces
-    whose-turn
-    move-history
+;game struct
+;    board (R,B,r,b) - 8x8 2d array
+;    (red-pieces, black-pieces?)
+;    pieces (each slot represents a dark board spot?)
+;    king-pieces
+;    whose-turn
+;    move-history
     
 
 ;;  INIT-GAME
@@ -92,7 +92,7 @@ game struct
 
 
 
-do-move! / undo-move!
+;do-move! / undo-move!
 
 
 ;;  DO-MOVE!
@@ -150,17 +150,17 @@ do-move! / undo-move!
       (toggle-player! game)
       game)))
 
-toggle-turn!
+;toggle-turn!
 
-game-over?
+;game-over?
 
-legal-moves (is-legal?)
+;legal-moves (is-legal?)
 
-eval-func (count pieces, kings count as more, normalize?)
+;eval-func (count pieces, kings count as more, normalize?)
 
-display/print
+;display/print
 
-MCTS: random-move, do-random-move!, default-policy,
-    make-hash-key-from-game
+;MCTS: random-move, do-random-move!, default-policy,
+;    make-hash-key-from-game
 
-a/b: just eval func?
+;a/b: just eval func?
