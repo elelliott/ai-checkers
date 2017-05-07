@@ -12,7 +12,7 @@
 (defconstant *bking* 2)
 (defconstant *rking* 3)
 
-(defconstant pieces #(b r K L))
+(defconstant pieces #(B R K L))
 
 ;;  WIN-LOSS VALUES
 
@@ -41,7 +41,9 @@
 (defstruct (checkers (:print-function print-checkers))
   (board (make-array '(8 8) :initial-element nil))
   (red-alive 12)
+  (red-kings 0)
   (black-alive 12)
+  (black-kings 0)
   (whose-turn? *black*) ; black moves first
   (move-history nil) ; for alpha-beta minimax
   )
@@ -134,6 +136,10 @@
     
     (setf (aref bored r c) piece)
     
+    (if (= plr *black*)
+	(incf (checkers-black-kings game))
+        (incf (checkers-red-kings game)))
+    
     game))
 
 ;do-move! / undo-move!
@@ -167,10 +173,26 @@
 
 ;legal-moves (is-legal?)
 
-;eval-func (count pieces, kings count as more, normalize?)
+;; EVAL-FUNC
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: a number representing how favorable GAME is from black's perspective
+
+(defmethod eval-func ((game checkers))
+  (let ((num-red (checkers-red-alive game))
+	(num-black (checkers-black-alive game))
+	(red-kings (checkers-red-kings game))
+	(black-kings (checkers-black-kings game))
+	(red-value 0)
+	(black-value 0))
+    
+    ; kings are worth 5 additional points each
+    (incf red-value (+ num-red (* 5 red-kings)))
+    (incf black-value (+ num-black (* 5 black-kings)))
+    
+    (- black-value red-value))) ;; NORMALIZE??
 
 ;; PRINT-CHECKERS
-;; used by the checkers struct to display nicely a game of checkers.
+;; used by the checkers struct to nicely display a game of checkers.
 
 (defun print-checkers (game str depth)
   (declare (ignore depth))
