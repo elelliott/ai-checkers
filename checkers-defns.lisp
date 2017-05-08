@@ -1,8 +1,12 @@
-;; Elise Elliott and Mackenzie Little
-;; Checkers Implementation
-
+;; =====================================
+;;  CS 365 Spring 2017
+;;  Checkers Implementation
+;;  Elise Elliott and Mackenzie Little
+;;  checkers-defns.lisp
+;; =====================================
 
 ;;  GLOBAL CONSTANTS
+;; ----------------------------------------
 
 ;;  The players / pieces
 
@@ -12,9 +16,12 @@
 (defconstant *bking* 2)
 (defconstant *rking* 3)
 
+; vector used by print-checkers to display pieces:
+;      indexed by the pieces defined above
 (defconstant pieces #(B R K L))
 
 ;;  WIN-LOSS VALUES
+;; ----------------------------------------
 
 (defconstant *win-value* 400000)
 (defconstant *loss-value* -400000)
@@ -76,6 +83,13 @@
 		   
     ;; RETURN THE GAME!
     game))
+
+;; WHOSE-TURN
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: *red* or *black*
+
+(defmethod whose-turn ((game checkers))
+  (checkers-whose-turn? game))
 
 ;; CHOOSE-PIECE
 ;; INPUT: PLR, *red* or *black*
@@ -200,7 +214,7 @@
 (defmethod do-move! ((game checkers) check-legal? path)
   (let* ((bored (checkers-board game))
 	; (leg-moves (legal-moves game))
-	 (plr (checkers-whose-turn? game))
+	 (plr (whose-turn game))
 	 (piece (aref bored pr pc)))
     
     (cond
@@ -227,23 +241,40 @@
 ;;              to *red* if currently *black* and vice versa
 
 (defmethod toggle-turn! ((game checkers))
-  (if (= *black* (checkers-whose-turn? game))
-      (setf (checkers-whose-turn? game) *red*)
-    (setf (checkers-whose-turn? game) *black*)))
+  (if (= *black* (whose-turn game))
+      (setf (whose-turn game) *red*)
+    (setf (whose-turn game) *black*)))
 
+;; MUST-PASS? - naive implementation
+;; INPUT: GAME, a checkers struct
+;;        PLR, *red* or *black*
+;; OUTPUT: T if PLR has no legal moves
+
+(defmethod must-pass? ((game checkers))
+  (let ((leg-moves (legal-moves game)))
+    (= 1 (length leg-moves)))) ; only move is pass
+   
 ;; GAME-OVER?
 ;; INPUT: GAME, a checkers struct
-;; OUTPUT: T if the game is over
+;; OUTPUT: T if the game is over (i.e. at least one player must pass)
 
 (defmethod game-over? ((game checkers))
-  nil)
+  (let ((pass? (must-pass? game)))
+    
+    (when (not pass?) ; if current player doesn't have to pass,
+      (toggle-turn! game) ; check other player.
+      (setf pass? (must-pass? game))
+      (toggle-turn! game)) ; return game state to correct player
+    
+    ; pass? if T if at least one player must pass their turn.
+    pass?))
 
 ;; LEGAL-MOVES
 ;; INPUT: GAME, a checkers struct
 ;; OUTPUT: a vector of the legal moves (in the form (r c)) for current player
 
 (defmethod legal-moves ((game checkers))
-  (let ((plr (checkers-whose-turn? game)))
+  (let ((plr (whose-turn game)))
     nil))
 
 ;; EVAL-FUNC
@@ -273,7 +304,7 @@
   (let ((bored (checkers-board game))
 	(red-live (checkers-red-alive game))
 	(black-live (checkers-black-alive game))
-	(plr (checkers-whose-turn? game)))
+	(plr (whose-turn game)))
     
     (format str "    0 1 2 3 4 5 6 7~%")
     (format str "  -------------------~%")
