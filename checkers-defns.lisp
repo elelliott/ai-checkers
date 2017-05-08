@@ -29,10 +29,12 @@
 ;;  CHECKERS struct
 ;; -----------------------------------------------------------------------
 ;;  Fields:
-;;   BOARD   --  An 8-by-8 array containing 
-;;                      *red*, *black*, *rking*, *bking*, or nil
+;;   BOARD  --  An 8-by-8 array containing 
+;;              *red*, *black*, *rking*, *bking*, or nil
+;;   RED-ALIVE, BLACK-ALIVE  --  Number of red/black tokens on the board
+;;   RED-KINGS, BLACK-KINGS  --  Number of red/black kings on the board
 ;;   WHOSE-TURN?  --  Either *red* or *black*
-;;   MOVE-HISTORY  -- A list of the moves that got us from initial 
+;;   MOVE-HISTORY  --  A list of the moves that got us from initial 
 ;;      state to the current state
 ;; -----------------------------------------------------------------------
 ;;  NOTE:  Red's home rows are 0, 1, 2.
@@ -144,9 +146,6 @@
     
     game))
 
-;do-move! / undo-move!
-
-
 ;;  DO-MOVE!
 ;;  INPUTS:  GAME, a checkers struct
 ;;           CHECK-LEGAL?, T or NIL
@@ -176,9 +175,12 @@
      (t
       ;; have to remove any pieces between PLOC and LOC
       ;; have to update counts in game struct accordingly
+      ;; kinging check?
       ;; have to MOVE-TOKEN from PLOC to LOC
+      ;; ADD TO MOVE HISTORY
       ))))
       
+;; UNDO-MOVE!
 
 ;; TOGGLE-TURN
 ;; INPUT: GAME, a checkers struct
@@ -191,9 +193,20 @@
       (setf (checkers-whose-turn? game) *red*)
     (setf (checkers-whose-turn? game) *black*)))
 
-;game-over?
+;; GAME-OVER?
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: T if the game is over
 
-;legal-moves (is-legal?)
+(defmethod game-over? ((game checkers))
+  nil)
+
+;; LEGAL-MOVES
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: a vector of the legal moves (in the form (r c)) for current player
+
+(defmethod legal-moves ((game checkers))
+  (let ((plr (checkers-whose-turn? game)))
+    nil))
 
 ;; EVAL-FUNC
 ;; INPUT: GAME, a checkers struct
