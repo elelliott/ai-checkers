@@ -116,6 +116,22 @@
     
     ; return the game
     game))
+
+;; IS-RED-PIECE?
+;; INPUT: PIECE, *red*, *black*, *bking*, *rking*, or nil
+
+(defun is-red-piece? (piece)
+  (if piece
+      (or (= piece 1) (= piece 3))
+    nil))
+
+;; IS-BLACK-PIECE?
+;; INPUT: PIECE, *red*, *black*, *bking*, *rking*, or nil
+
+(defun is-black-piece? (piece)
+  (if piece
+      (or (= piece 0) (= piece 2))
+    nil))
     
 ;; IS-KING?
 ;; INPUT: PIECE, *red*, *black*, *bking*, *rking*, or nil
@@ -146,18 +162,42 @@
     
     game))
 
+;; FIND-KINGS
+;; INPUT: GAME, a checkers struct
+;;        PLR, the player whose kings you want to find
+;; OUTPUT: a vector of pairs (r c) representing the locations of the kings
+;;         for PLR. 
+
+(defmethod find-kings ((game checkers) plr)
+  (let ((bored (checkers-board game))
+	(acc nil))
+    
+    (dotimes (r 8)
+      (dotimes (c 8)
+	
+	(let ((piece (aref bored r c)))
+	  
+	  (when (and (is-king? piece)
+		     (or (and (= plr *black*) (is-black-piece? piece))
+			 (and (= plr *red*) (is-red-piece? piece))))
+	    
+	    (setf acc (cons (list r c) acc))))))
+    
+    (make-array (length acc) :initial-contents acc)))
+	    
+		 
 ;;  DO-MOVE!
 ;;  INPUTS:  GAME, a checkers struct
 ;;           CHECK-LEGAL?, T or NIL
-;;           PLOC, LOC, two lists of form (r c) representing the previous
-;;                      and desired locations of some piece
+;;           PATH, a vector with elements (r c) representing a token's path
+;;           of movement to its new location
 ;;  OUTPUT:  a modified version of GAME where the piece at PLOC has been moved
 ;;           to LOC, and any pieces between PLOC and LOC have been removed
 ;;  SIDE EFFECT:  Destructively modifies GAME by doing the specified move.
 ;;    Note:  If CHECK-LEGAL? is T, then it only does the move if IS-LEGAL?
 ;;           succeeds.
 
-(defmethod do-move! ((game checkers) check-legal? ploc loc)
+(defmethod do-move! ((game checkers) check-legal? path)
   (let* ((bored (checkers-board game))
 	; (leg-moves (legal-moves game))
 	 (plr (checkers-whose-turn? game))
@@ -174,6 +214,8 @@
      
      (t
       ;; have to remove any pieces between PLOC and LOC
+      ;;      ---> may have to use a PATH from PLOC to LOC,
+      ;;           since tokens don't have to move on a straight diag.
       ;; have to update counts in game struct accordingly
       ;; kinging check?
       ;; have to MOVE-TOKEN from PLOC to LOC
