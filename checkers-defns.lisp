@@ -213,9 +213,9 @@
 
 (defmethod do-move! ((game checkers) check-legal? path)
   (let* ((bored (checkers-board game))
-	; (leg-moves (legal-moves game))
 	 (plr (whose-turn game))
-	 (piece (aref bored pr pc)))
+	 (ploc (svref path 0)) ; previous/starting location
+	 (piece (aref bored (first ploc) (second ploc))))
     
     (cond
      ((and check-legal? (not (is-legal? game path)))
@@ -242,8 +242,8 @@
 
 (defmethod toggle-turn! ((game checkers))
   (if (= *black* (whose-turn game))
-      (setf (whose-turn game) *red*)
-    (setf (whose-turn game) *black*)))
+      (setf (checkers-whose-turn? game) *red*)
+    (setf (checkers-whose-turn? game) *black*)))
 
 ;; MUST-PASS? - naive implementation
 ;; INPUT: GAME, a checkers struct
