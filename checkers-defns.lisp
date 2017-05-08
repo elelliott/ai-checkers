@@ -122,7 +122,7 @@
 
 (defun is-red-piece? (piece)
   (if piece
-      (or (= piece 1) (= piece 3))
+      (oddp piece)
     nil))
 
 ;; IS-BLACK-PIECE?
@@ -130,7 +130,7 @@
 
 (defun is-black-piece? (piece)
   (if piece
-      (or (= piece 0) (= piece 2))
+      (evenp piece)
     nil))
     
 ;; IS-KING?
@@ -201,24 +201,20 @@
   (let* ((bored (checkers-board game))
 	; (leg-moves (legal-moves game))
 	 (plr (checkers-whose-turn? game))
-	 (pr (first ploc))
-	 (pc (second ploc))
-	 (r (first loc))
-	 (c (second loc))
 	 (piece (aref bored pr pc)))
     
     (cond
-     ((and check-legal? (is-legal? game r c))
+     ((and check-legal? (not (is-legal? game path)))
       (format t "Not a legal move!~%")
       (return-from do-move! game))
      
-     (t
-      ;; have to remove any pieces between PLOC and LOC
-      ;;      ---> may have to use a PATH from PLOC to LOC,
-      ;;           since tokens don't have to move on a straight diag.
+     (t	; if we arrive here, we can assume the path is legal
+      
+      
+      ;; have to remove any pieces between spaces on PATH
       ;; have to update counts in game struct accordingly
-      ;; kinging check?
-      ;; have to MOVE-TOKEN from PLOC to LOC
+      ;; make king if necessary
+      ;; have to MOVE-TOKEN from first spot in path to last
       ;; ADD TO MOVE HISTORY
       ))))
       
