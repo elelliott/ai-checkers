@@ -336,6 +336,92 @@
 ;    make-hash-key-from-game
 
 
+<<<<<<< HEAD
+;;  RANDOM-MOVE
+;; ------------------------------------------
+;;  INPUT:  GAME, a CHECKERS struct
+;;  OUTPUT:  One of the legal moves available to the current
+;;   player, chosen randomly.
+
+(defmethod random-move ((game checkers))
+  (let* ((leg-moves (legal-moves game))
+	 (rand-int (random (length leg-moves))))
+
+    ; return the legal move at a random index
+    (svref leg-moves rand-int)))
+
+
+;;  DO-RANDOM-MOVE!
+;; ------------------------------------------------
+;;  INPUT:   GAME, a CHECKERS struct
+;;  OUTPUT:  The modified game
+;;  SIDE EFFECT:  Destructively modifies GAME by doing one of the 
+;;   legal moves available to the current player, chosen randomly.
+
+(defmethod do-random-move! ((game checkers))
+  (let* ((rand-mv (random-move game)))
+        
+    (do-move! game nil (first rand-mv) (second rand-mv))))
+
+
+;;  DEFAULT-POLICY
+;; ---------------------------------------------------------------------------
+;;  INPUT:  GAME, a CHECKERS struct
+;;  OUTPUT: The result (from black's perspective) of playing out the
+;;    current game using randomly selected moves.  The value has been
+;;    normalized between -1 and 1, where negative values mean red won
+;;    and positive values mean black won
+
+(defmethod default-policy ((game checkers))
+  (let ((g (copy-game game)))
+    
+    ; perform random moves on the copy of the game until game is over
+        
+    (while (not (game-over? g))
+      (do-random-move! g))
+    
+    ; game is over
+    
+    (let ((num-red (checkers-red-alive game))
+		(num-black (checkers-black-alive game))
+		(red-kings (checkers-red-kings game))
+		(black-kings (checkers-black-kings game))
+		(red-value 0)
+		(black-value 0))
+
+    	; kings are worth 5 additional points each
+    	(incf red-value (+ num-red (* 5 red-kings)))
+    	(incf black-value (+ num-black (* 5 black-kings)))
+
+    	;; 60 means a victory with all kings and no pieces lost
+    	(let* ((diff (- black-value red-value))
+    		   (score (/ diff 60)))
+      
+      (if (< diff 0) ; if black lost,
+	  (* score -1) ; return negative score
+	  score))))) ; otherwise positive score
+
+
+;;  MAKE-HASH-KEY-FROM-GAME
+;; --------------------------------------------
+;;  INPUT:  GAME, a CHECKERS struct
+;;  OUTPUT:  A list of the form (WHITE-PIECES BLACK-PIECES WHOSE-TURN)
+;;    where the contents are as described in the STATE struct
+
+
+;; ********* NOT DONE ****************
+(defmethod make-hash-key-from-game
+    ((game checkers))
+    ;; How are we representing piece locations? othello uses 64-bit ints, but we just
+    ;; have counts of the pieces? should we implement that?
+  (list (checkers-red-pieces game)
+	(checkers-black-pieces game)
+	(checkers-whose-turn game)))
+
+
+
+=======
+>>>>>>> origin/master
 ;;  EVAL-FUNC FOR A/B MINIMAX
 ;; ------------------------------------------------------------------------
 
@@ -356,5 +442,17 @@
     (incf red-value (+ num-red (* 5 red-kings)))
     (incf black-value (+ num-black (* 5 black-kings)))
     
+<<<<<<< HEAD
+    ;; To normalize between 0 and 1:
+    ;; If black has all 12 kings and red lost(best case), score is 60.
+	;; If red has all 12 kings and black lost(worst case), score is -60
+	;; Divide by 60 to normalize between -1 and 1
+    (/ (- black-value red-value) 60)
+    ))
+
+
+
+=======
     (- black-value red-value))) ;; NORMALIZE??
+>>>>>>> origin/master
 
