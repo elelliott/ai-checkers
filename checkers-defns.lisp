@@ -41,8 +41,8 @@
 ;;   RED-ALIVE, BLACK-ALIVE  --  Number of red/black tokens on the board
 ;;   RED-KINGS, BLACK-KINGS  --  Number of red/black kings on the board
 ;;   WHOSE-TURN?  --  Either *red* or *black*
-;;   MOVE-HISTORY  --  A list of the moves that got us from initial 
-;;      state to the current state
+;;   MOVE-HISTORY  --  A list CHECKERS STRUCTS containing the state of the game
+;;         before the last move was made.
 ;; -----------------------------------------------------------------------
 ;;  NOTE:  Red's home rows are 0, 1, 2.
 ;;         Black's home rows are 5, 6, 7.
@@ -130,6 +130,36 @@
     ; set board at ploc to nil if ploc is non-nil
     (when ploc
       (setf (aref bored (first ploc) (second ploc)) nil))
+    
+    ; return the game
+    game))
+
+;; REMOVE-TOKEN!
+;; INPUT: GAME, a checkers struct
+;;        R, C, ints representing the row and col of the piece to remove
+;; OUTPUT: the modified game with the piece removed and totals adjusted
+
+(defmethod remove-token! ((game checkers) r c)
+  (let* ((bored (checkers-board game))
+	 (piece (aref bored r c)))
+    
+    ; adjust totals, including king counts if appropriate
+    (cond
+     ((is-red-piece? piece)
+      
+      (decf (checkers-red-alive game))
+      
+      (when (is-king? piece)
+	(decf (checkers-red-kings game))))
+     
+     ((is-black-piece? piece)
+      
+      (decf (checkers-black-alive game))
+      
+      (when (is-king? piece)
+	(decf (checkers-black-kings game)))))
+    
+    (setf piece nil) ; set the piece to nothing!
     
     ; return the game
     game))
@@ -242,7 +272,8 @@
   (let* ((bored (checkers-board game))
 	 (plr (whose-turn game))
 	 (ploc (svref path 0)) ; previous/starting location
-	 (piece (aref bored (first ploc) (second ploc))))
+	 (piece (aref bored (first ploc) (second ploc)))
+	 (move-history (checkers-move-history game)))
     
     (cond
      ((and check-legal? (not (is-legal? game path)))
@@ -251,18 +282,29 @@
      
      (t	; if we arrive here, we can assume the path is legal
       
+      ; add current game state to move history before we modify it
+      
+      (setf move-history (cons game move-history))
       
       ;; have to remove any pieces between spaces on PATH
       ;; have to update counts in game struct accordingly
       ;;       ---> helper: (remove-token! game r c) TODO
-      ;; make king if necessary
-      ;;       ---> if red, token should be kinged if in row 7
-      ;;            if black, in row 0
-      ;;            helper: (make-king ...) already done
-      ;; have to MOVE-TOKEN from first spot in path to last
-      ;;       ---> (move-token! ...) implemented
-      ;; ADD PATH TO MOVE HISTORY (how should move history be stored?)
-      ))))
+      
+      (dotimes (i (- (length path) 1))
+	
+	(let* ((posn1 (svref path i))
+	       (posn2 (svref path (+ i 1)))
+	       (jumped 
+      
+      ; move token from starting position to final spot in path
+      ; make the piece a king if it (a) should become a king, or
+      ; (b) if it is already a king
+
+      (move-token! game r c ploc plr (or (make-king? plr r)
+					 (is-king? piece)))
+
+      ; return the modified game
+      game))))
       
 ;; UNDO-MOVE!
 ;; INPUT: GAME, a checkers struct
@@ -271,8 +313,13 @@
 ;; SIDE EFFECT: destructively modifies GAME
 
 (defmethod undo-move! ((game checkers))
-    nil)
-   
+  (let* ((history (checkers-move-history game))
+	 (new-game (first history)))
+    
+    (setf game new-game) ; will this work
+    
+    game))
+    
 ;; GAME-OVER?
 ;; INPUT: GAME, a checkers struct
 ;; OUTPUT: T if the game is over (i.e. at least one player must pass)
@@ -332,11 +379,6 @@
 ;;  FUNCTIONS FOR MCTS
 ;; ------------------------------------------------------------------------
 
-;MCTS: random-move, do-random-move!, default-policy,
-;    make-hash-key-from-game
-
-
-<<<<<<< HEAD
 ;;  RANDOM-MOVE
 ;; ------------------------------------------
 ;;  INPUT:  GAME, a CHECKERS struct
@@ -359,9 +401,9 @@
 ;;   legal moves available to the current player, chosen randomly.
 
 (defmethod do-random-move! ((game checkers))
-  (let* ((rand-mv (random-move game)))
+  (let* ((rand-path (random-move game)))
         
-    (do-move! game nil (first rand-mv) (second rand-mv))))
+    (do-move! game nil rand-path)))
 
 
 ;;  DEFAULT-POLICY
@@ -382,25 +424,7 @@
     
     ; game is over
     
-    (let ((num-red (checkers-red-alive game))
-		(num-black (checkers-black-alive game))
-		(red-kings (checkers-red-kings game))
-		(black-kings (checkers-black-kings game))
-		(red-value 0)
-		(black-value 0))
-
-    	; kings are worth 5 additional points each
-    	(incf red-value (+ num-red (* 5 red-kings)))
-    	(incf black-value (+ num-black (* 5 black-kings)))
-
-    	;; 60 means a victory with all kings and no pieces lost
-    	(let* ((diff (- black-value red-value))
-    		   (score (/ diff 60)))
-      
-      (if (< diff 0) ; if black lost,
-	  (* score -1) ; return negative score
-	  score))))) ; otherwise positive score
-
+    (eval-func g)))
 
 ;;  MAKE-HASH-KEY-FROM-GAME
 ;; --------------------------------------------
@@ -420,8 +444,6 @@
 
 
 
-=======
->>>>>>> origin/master
 ;;  EVAL-FUNC FOR A/B MINIMAX
 ;; ------------------------------------------------------------------------
 
@@ -442,17 +464,8 @@
     (incf red-value (+ num-red (* 5 red-kings)))
     (incf black-value (+ num-black (* 5 black-kings)))
     
-<<<<<<< HEAD
-    ;; To normalize between 0 and 1:
-    ;; If black has all 12 kings and red lost(best case), score is 60.
-	;; If red has all 12 kings and black lost(worst case), score is -60
-	;; Divide by 60 to normalize between -1 and 1
-    (/ (- black-value red-value) 60)
-    ))
-
-
-
-=======
-    (- black-value red-value))) ;; NORMALIZE??
->>>>>>> origin/master
-
+    ;; To normalize between -1 and 1:
+    ;; If black has all 12 kings and red lost (best case), score is 60.
+    ;; If red has all 12 kings and black lost (worst case), score is -60
+    ;; Divide by 60 to normalize between -1 and 1
+    (/ (- black-value red-value) 60)))
