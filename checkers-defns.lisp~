@@ -58,6 +58,7 @@
   )
     
 ;;  INIT-GAME
+;; ----------------------------------------------------------------
 ;;  INPUTS:  None
 ;;  OUTPUT:  A CHECKERS struct corresponding to a new game of checkers
 
@@ -83,10 +84,6 @@
     ;; RETURN THE GAME!
     game))
 
-
-;;  UTILITY FUNCTIONS
-;; ------------------------------------------------------------------------
-
 ;; WHOSE-TURN
 ;; INPUT: GAME, a checkers struct
 ;; OUTPUT: *red* or *black*
@@ -110,7 +107,7 @@
    (t
     *red*)))
 
-;; MOVE-TOKEN!
+;; PLACE-TOKEN
 ;; INPUT: GAME, a checkers struct
 ;;        R, C, ints representing the row and col where token will be moved
 ;;        PLOC, a list of the form (row col) representing the token's 
@@ -202,38 +199,14 @@
     
     (make-array (length acc) :initial-contents acc)))
 	    
-;; TOGGLE-TURN
-;; INPUT: GAME, a checkers struct
-;; OUTPUT: none
-;; SIDE EFFECT: sets the whose-turn? field of the checkers struct
-;;              to *red* if currently *black* and vice versa
-
-(defmethod toggle-turn! ((game checkers))
-  (if (= *black* (whose-turn game))
-      (setf (checkers-whose-turn? game) *red*)
-    (setf (checkers-whose-turn? game) *black*)))
-
-;; MUST-PASS? - naive implementation
-;; INPUT: GAME, a checkers struct
-;;        PLR, *red* or *black*
-;; OUTPUT: T if PLR has no legal moves
-
-(defmethod must-pass? ((game checkers))
-  (let ((leg-moves (legal-moves game)))
-    (= 1 (length leg-moves)))) ; only move is pass
-
-
-;;  GAMEPLAY FUNCTIONS
-;; ------------------------------------------------------------------------
-
+		 
 ;;  DO-MOVE!
 ;;  INPUTS:  GAME, a checkers struct
 ;;           CHECK-LEGAL?, T or NIL
 ;;           PATH, a vector with elements (r c) representing a token's path
 ;;           of movement to its new location
-;;  OUTPUT:  a modified version of GAME where the the piece at the first
-;;           posn on the path has been moved to the last posn in path,
-;;           and any pieces which were jumped have been removed
+;;  OUTPUT:  a modified version of GAME where the piece at PLOC has been moved
+;;           to LOC, and any pieces between PLOC and LOC have been removed
 ;;  SIDE EFFECT:  Destructively modifies GAME by doing the specified move.
 ;;    Note:  If CHECK-LEGAL? is T, then it only does the move if IS-LEGAL?
 ;;           succeeds.
@@ -254,24 +227,32 @@
       
       ;; have to remove any pieces between spaces on PATH
       ;; have to update counts in game struct accordingly
-      ;;       ---> helper: (remove-token! game r c) TODO
       ;; make king if necessary
-      ;;       ---> if red, token should be kinged if in row 7
-      ;;            if black, in row 0
-      ;;            helper: (make-king ...) already done
       ;; have to MOVE-TOKEN from first spot in path to last
-      ;;       ---> (move-token! ...) implemented
-      ;; ADD PATH TO MOVE HISTORY (how should move history be stored?)
+      ;; ADD TO MOVE HISTORY
       ))))
       
 ;; UNDO-MOVE!
-;; INPUT: GAME, a checkers struct
-;; OUTPUT: a modified version of the game in which the last move has
-;;         been undone.
-;; SIDE EFFECT: destructively modifies GAME
 
-(defmethod undo-move! ((game checkers))
-    nil)
+;; TOGGLE-TURN
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: none
+;; SIDE EFFECT: sets the whose-turn? field of the checkers struct
+;;              to *red* if currently *black* and vice versa
+
+(defmethod toggle-turn! ((game checkers))
+  (if (= *black* (whose-turn game))
+      (setf (checkers-whose-turn? game) *red*)
+    (setf (checkers-whose-turn? game) *black*)))
+
+;; MUST-PASS? - naive implementation
+;; INPUT: GAME, a checkers struct
+;;        PLR, *red* or *black*
+;; OUTPUT: T if PLR has no legal moves
+
+(defmethod must-pass? ((game checkers))
+  (let ((leg-moves (legal-moves game)))
+    (= 1 (length leg-moves)))) ; only move is pass
    
 ;; GAME-OVER?
 ;; INPUT: GAME, a checkers struct
@@ -296,9 +277,23 @@
   (let ((plr (whose-turn game)))
     nil))
 
+;; EVAL-FUNC
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: a number representing how favorable GAME is from black's perspective
 
-;;  DISPLAY FUNCTION
-;; ------------------------------------------------------------------------
+(defmethod eval-func ((game checkers))
+  (let ((num-red (checkers-red-alive game))
+	(num-black (checkers-black-alive game))
+	(red-kings (checkers-red-kings game))
+	(black-kings (checkers-black-kings game))
+	(red-value 0)
+	(black-value 0))
+    
+    ; kings are worth 5 additional points each
+    (incf red-value (+ num-red (* 5 red-kings)))
+    (incf black-value (+ num-black (* 5 black-kings)))
+    
+    (- black-value red-value))) ;; NORMALIZE??
 
 ;; PRINT-CHECKERS
 ;; used by the checkers struct to nicely display a game of checkers.
@@ -329,32 +324,8 @@
     (format str "It's ~A's turn!~%"
 	    (if (= *black* plr) "black" "red"))))
 	 
-;;  FUNCTIONS FOR MCTS
-;; ------------------------------------------------------------------------
 
 ;MCTS: random-move, do-random-move!, default-policy,
 ;    make-hash-key-from-game
 
-
-;;  EVAL-FUNC FOR A/B MINIMAX
-;; ------------------------------------------------------------------------
-
-;; EVAL-FUNC 
-;; INPUT: GAME, a checkers struct 
-;; OUTPUT: a number representing how favorable GAME is from 
-;;         black's perspective
-
-(defmethod eval-func ((game checkers))
-  (let ((num-red (checkers-red-alive game))
-	(num-black (checkers-black-alive game))
-	(red-kings (checkers-red-kings game))
-	(black-kings (checkers-black-kings game))
-	(red-value 0)
-	(black-value 0))
-    
-    ; kings are worth 5 additional points each
-    (incf red-value (+ num-red (* 5 red-kings)))
-    (incf black-value (+ num-black (* 5 black-kings)))
-    
-    (- black-value red-value))) ;; NORMALIZE??
-
+;a/b: just eval func?
