@@ -350,7 +350,7 @@
 		 (posn2 (svref path (+ i 1)))
 		 (jumped (calc-jumped-loc posn1 posn2)))
 	    
-	    (when jumped ; only move token if something was jumped.
+	    (when jumped ; only remove token if something was jumped.
 	      (remove-token! game (first jumped) (second jumped)))))
 	
 	; move token from starting position to final spot in path
