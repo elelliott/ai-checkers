@@ -284,6 +284,42 @@
 		   :move-history (checkers-move-history game))))
   
 
+;; FIND-JUMPS
+;; INPUT: GAME, a checkers struct
+;;        R, C, ints representing a slot on the game board
+;;        DIR, -1, 1, or nil, representing the row relative to (r c) that 
+;;             we should examine based on if the player is RED (1) or 
+;;             BLACK (-1). nil means this piece is a king and both directions
+;;             need to be checked.
+;; OUTPUT: a vector of possible jumps, or nil
+
+(defun find-jumps (game r c dir)
+  
+  ;; Not sure if this will go through all possible combinations or if it
+  ;; will just stop at the forward left thing every time
+  
+  ;; If space 1 forward and 1 left has a token of the other player's color:
+  ;; Look 1 forward and 1 left of that: if open and not out of bounds, cons coord to coords
+  ;; If new position is at edge of board and king? is false: king? becomes true
+  ;; (can-jump? updated-game new-position king? coords)
+  ;; If space 1 forward and 1 right has a token of the other player's color:
+  ;; Look 1 forward and 1 right of that: if open and not out of bounds, cons coord to coords
+  ;; If new position is at edge of board and king? is false: king? becomes true
+  ;; (can-jump? updated-game new-position king? coords)
+  
+  ;; if king? is true:
+  ;; If space 1 back and 1 right has a token of the other player's color:
+  ;; Look 1 back and 1 right of that: if open and not out of bounds, cons coord to coords
+  ;; (can-jump? updated-game new-position true coords)
+  ;; If space 1 back and 1 left has a token of the other player's color:
+  ;; Look 1 back and 1 left of that: if open and not out of bounds, cons coord to coords
+  ;; (can-jump? updated-game new-position true coords)
+  
+  ;; when can't jump, return nil
+  
+  nil)
+
+
 ;;  GAMEPLAY FUNCTIONS
 ;; ------------------------------------------------------------------------
 
@@ -398,58 +434,27 @@
 
 (defmethod legal-moves ((game checkers))
   (let ((plr (whose-turn game))
-  		(bored (checkers-board game)))
-  	(cond
-  		;; do we need to have a condition for if player is black or red?
-
-  		;; for every piece of the player's color:
-  			;; if piece is king:
-  				;; (can-jump? bored piece true ())
-  				;; if ^ is nil, see if 1 forward/back/left/right is open
-  					;; if so, cons move onto list of leg moves
-  				;; otherwise, cons result of that function onto list of leg moves
-
-  			;; if piece is not king:
-  				;; (can-jump? bored piece false ())
-				;; if ^ is nil, see if 1 forward/left/right is open
-  					;; if so, cons move onto list of leg moves
-  				;; otherwise, cons result of that function onto list of leg moves
-
-  		)
-
-
+	(bored (checkers-board game)))
+    (cond
+     ;; do we need to have a condition for if player is black or red?
+     
+     ;; for every piece of the player's color:
+     ;; if piece is king:
+     ;; (find-jumps game r c dir)
+     ;; if ^ is nil, see if 1 forward/back/left/right is open
+     ;; if so, cons move onto list of leg moves
+     ;; otherwise, cons result of that function onto list of leg moves
+     
+     ;; if piece is not king:
+     ;; (find-jumps game r c dir)
+     ;; if ^ is nil, see if 1 forward/left/right is open
+     ;; if so, cons move onto list of leg moves
+     ;; otherwise, cons result of that function onto list of leg moves
+     
+     )
+    
+    
     nil))
-
-
-;; CAN-JUMP?
-;; INPUT: GAME, a checkers struct, PIECE, a piece position, and KING?, a boolean
-;; OUTPUT: a list of coords the piece can jump to, or nil
-
-(defun can-jump? (game piece king? coords)
-
-	;; Not sure if this will go through all possible combinations or if it
-	;; will just stop at the forward left thing every time
-
-	;; If space 1 forward and 1 left has a token of the other player's color:
-		;; Look 1 forward and 1 left of that: if open and not out of bounds, cons coord to coords
-		;; If new position is at edge of board and king? is false: king? becomes true
-		;; (can-jump? updated-game new-position king? coords)
-	;; If space 1 forward and 1 right has a token of the other player's color:
-		;; Look 1 forward and 1 right of that: if open and not out of bounds, cons coord to coords
-		;; If new position is at edge of board and king? is false: king? becomes true
-		;; (can-jump? updated-game new-position king? coords)
-
-	;; if king? is true:
-		;; If space 1 back and 1 right has a token of the other player's color:
-			;; Look 1 back and 1 right of that: if open and not out of bounds, cons coord to coords
-			;; (can-jump? updated-game new-position true coords)
-		;; If space 1 back and 1 left has a token of the other player's color:
-			;; Look 1 back and 1 left of that: if open and not out of bounds, cons coord to coords
-			;; (can-jump? updated-game new-position true coords)
-
-	;; when can't jump, return nil
-
-	nil)
 
 
 ;;  DISPLAY FUNCTION
@@ -537,17 +542,10 @@
 ;;  MAKE-HASH-KEY-FROM-GAME
 ;; --------------------------------------------
 ;;  INPUT:  GAME, a CHECKERS struct
-;;  OUTPUT:  A list of the form (WHITE-PIECES BLACK-PIECES WHOSE-TURN)
-;;    where the contents are as described in the STATE struct
+;;  OUTPUT:  A list containing the board and whose turn it is
 
-
-;; ********* NOT DONE ****************
-(defmethod make-hash-key-from-game
-    ((game checkers))
-    ;; How are we representing piece locations? othello uses 64-bit ints, but we just
-    ;; have counts of the pieces? should we implement that?
-  (list (checkers-red-alive game)
-	(checkers-black-alive game)
+(defmethod make-hash-key-from-game ((game checkers))
+  (list (checkers-board game)
 	(whose-turn game)))
 
 
@@ -576,4 +574,4 @@
     ;; If black has all 12 kings and red lost (best case), score is 60.
     ;; If red has all 12 kings and black lost (worst case), score is -60
     ;; Divide by 60 to normalize between -1 and 1
-    (/ (- black-value red-value) 60)))
+    (/ (- black-value red-value) 72)))
