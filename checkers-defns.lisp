@@ -145,21 +145,21 @@
     
     ; adjust totals, including king counts if appropriate
     (cond
-     ((is-red-piece? piece)
+     ((is-red-piece? piece) ; if red, decrement red totals
       
       (decf (checkers-red-alive game))
       
       (when (is-king? piece)
 	(decf (checkers-red-kings game))))
      
-     ((is-black-piece? piece)
+     ((is-black-piece? piece) ; if black, decrement black totals
       
       (decf (checkers-black-alive game))
       
       (when (is-king? piece)
 	(decf (checkers-black-kings game)))))
     
-    (setf piece nil) ; set the piece to nothing!
+    (setf (aref bored r c) nil) ; set the piece to nothing!
     
     ; return the game
     game))
@@ -187,15 +187,24 @@
 (defun is-king? (piece)
   (if piece
       (> piece 1)
-      nil))
+    nil))
 
-;; MAKE-KING
+;; MAKE-KING?
+;; INPUT: PLR, *red* or *black*
+;;        R, the row of the piece in question
+;; OUTPUT: T if a piece belonging to PLR which is in row R should be kinged
+
+(defun make-king? (plr r)
+  (or (and (= plr *red*) (= r 7)) ; red is kinged in row 7
+      (and (= plr *black*) (= r 0)))) ; black is kinged in row 0
+
+;; KING-ME
 ;; INPUT: GAME, a checkers struct
 ;;        PLR, *red* or *black*
 ;;        R, C, ints representing the row and col of piece to be kinged
 ;; OUTPUT: a modified version of GAME where the piece at (r c) has been kinged
 
-(defmethod make-king ((game checkers) plr r c)
+(defmethod king-me ((game checkers) plr r c)
   (let ((bored (checkers-board game))
 	(piece (choose-piece plr t)))
     
@@ -252,6 +261,28 @@
   (let ((leg-moves (legal-moves game)))
     (= 1 (length leg-moves)))) ; only move is pass
 
+;; COPY-GAME
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: a copy of GAME
+
+(defmethod copy-game ((game checkers))
+  (labels 
+      ((copy-board (bored)
+	 (let* ((copy (make-array '(8 8))))
+	   (dotimes (r 8)
+	     (dotimes (c 8)
+	       (setf (aref copy r c) (aref bored r c))))
+	   
+	   copy)))
+    
+    (make-checkers :board (copy-board (checkers-board game))
+		   :red-alive (checkers-red-alive game)
+		   :red-kings (checkers-red-kings game)
+		   :black-alive (checkers-black-alive game)
+		   :black-kings (checkers-black-kings game)
+		   :whose-turn? (whose-turn game)
+		   :move-history (checkers-move-history game))))
+  
 
 ;;  GAMEPLAY FUNCTIONS
 ;; ------------------------------------------------------------------------
@@ -269,56 +300,82 @@
 ;;           succeeds.
 
 (defmethod do-move! ((game checkers) check-legal? path)
-  (let* ((bored (checkers-board game))
-	 (plr (whose-turn game))
-	 (ploc (svref path 0)) ; previous/starting location
-	 (piece (aref bored (first ploc) (second ploc)))
-	 (move-history (checkers-move-history game)))
+  (labels 
+      ;; CALC-JUMPED-LOC helper
+      ;; INPUT: POSN1, POSN2, lists of form (r c)
+      ;; OUTPUT: a list of the same form, representing the space diagonally
+      ;;         between POSN1 and POSN2, or NIL
+      ((calc-jumped-loc (posn1 posn2) 
+	 (let* ((r1 (first posn1))
+		(r2 (first posn2))
+		(c1 (second posn1))
+		(c2 (second posn2))
+		(diff-r (- r2 r1)) ; (r2-r1) will always be +/- 2
+		(diff-c (- c2 c1))) ; and same for (c2-c1)
+	   
+	   ; location of jumped piece is one slot in the (diff-r diff-c)
+	   ; direction from the starting posn of the moving piece.
+	   ; if no piece is jumped, return NIL.
+	   
+	   (if (= (abs diff-r) 2)
+	       (list (+ r1 (/ diff-r 2)) (+ c1 (/ diff-c 2)))
+	     nil))))
     
-    (cond
-     ((and check-legal? (not (is-legal? game path)))
-      (format t "Not a legal move!~%")
-      (return-from do-move! game))
-     
-     (t	; if we arrive here, we can assume the path is legal
+    (let* ((bored (checkers-board game))
+	   (plr (whose-turn game))
+	   (ploc (svref path 0)) ; previous/starting location
+	   (endloc (svref path (- (length path) 1))) ; ending location
+	   (r (first endloc))
+	   (c (second endloc))
+	   (piece (aref bored (first ploc) (second ploc)))
+	   (move-history (checkers-move-history game)))
       
-      ; add current game state to move history before we modify it
-      
-      (setf move-history (cons game move-history))
-      
-      ;; have to remove any pieces between spaces on PATH
-      ;; have to update counts in game struct accordingly
-      ;;       ---> helper: (remove-token! game r c) TODO
-      
-      (dotimes (i (- (length path) 1))
+      (cond
+       ((and check-legal? (not (is-legal? game path)))
+	(format t "Not a legal move!~%")
+	(return-from do-move! game))
+       
+       (t ; if we arrive here, we can assume the path is legal
 	
-	(let* ((posn1 (svref path i))
-	       (posn2 (svref path (+ i 1)))
-	       (jumped 
+	; add current game state to move history before we modify it
+	
+	(setf (checkers-move-history game) 
+	  (cons (copy-game game) move-history))
+	
+	; have to remove pieces between spaces listed on PATH
+	
+	(dotimes (i (- (length path) 1))
+	  
+	  (let* ((posn1 (svref path i))
+		 (posn2 (svref path (+ i 1)))
+		 (jumped (calc-jumped-loc posn1 posn2)))
+	    
+	    (when jumped ; only move token if something was jumped.
+	      (remove-token! game (first jumped) (second jumped)))))
+	
+	; move token from starting position to final spot in path
+	; leave its king status temporarily unchanged
+	
+	(move-token! game r c ploc plr (is-king? piece))
+	
+	; check if token should be a king; king it if so!
+	
+	(when (make-king? plr r)
+	  (king-me game plr r c))
+	
+	; toggle the turn
+	(toggle-turn! game)
+	
+	; return the modified game
+	game)))))
       
-      ; move token from starting position to final spot in path
-      ; make the piece a king if it (a) should become a king, or
-      ; (b) if it is already a king
-
-      (move-token! game r c ploc plr (or (make-king? plr r)
-					 (is-king? piece)))
-
-      ; return the modified game
-      game))))
-      
-;; UNDO-MOVE!
+;; UNDO-MOVE
 ;; INPUT: GAME, a checkers struct
-;; OUTPUT: a modified version of the game in which the last move has
+;; OUTPUT: a version of the game in which the last move has
 ;;         been undone.
-;; SIDE EFFECT: destructively modifies GAME
 
-(defmethod undo-move! ((game checkers))
-  (let* ((history (checkers-move-history game))
-	 (new-game (first history)))
-    
-    (setf game new-game) ; will this work
-    
-    game))
+(defmethod undo-move ((game checkers))
+  (first (checkers-move-history game)))
     
 ;; GAME-OVER?
 ;; INPUT: GAME, a checkers struct
@@ -438,9 +495,9 @@
     ((game checkers))
     ;; How are we representing piece locations? othello uses 64-bit ints, but we just
     ;; have counts of the pieces? should we implement that?
-  (list (checkers-red-pieces game)
-	(checkers-black-pieces game)
-	(checkers-whose-turn game)))
+  (list (checkers-red-alive game)
+	(checkers-black-alive game)
+	(whose-turn game)))
 
 
 

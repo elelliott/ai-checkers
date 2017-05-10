@@ -68,7 +68,7 @@
 	  (setf new-alpha ; new alpha val is max of old alpha & val of comp-min
 	    (max old-alpha comp-min))
 	  
-	  (undo-move! g) ; UNDO the move!
+	  (setf g (undo-move g)) ; UNDO the move!
 	  
 	  (when (< old-alpha new-alpha)	; found a better move
 	    (setf best-move mv))
@@ -121,7 +121,7 @@
 	  (setf new-beta ; new-beta is min of old beta and val of comp-max
 	    (min old-beta comp-max))
 	
-	  (undo-move! g) ; UNDO the move!
+	  (setf g (undo-move g)) ; UNDO the move!
 	  
 	  (incf (stats-num-moves-done statty) 1) ; increase moves done by 1
 	  
