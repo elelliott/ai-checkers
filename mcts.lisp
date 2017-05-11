@@ -10,7 +10,7 @@
 ;;     COPY-GAME
 ;;     LEGAL-MOVES  --  returns VECTOR of legal moves
 ;;     MAKE-HASH-KEY-FROM-GAME
-;;     WHOSE-TURN -- returns *BLACK* or *WHITE*
+;;     WHOSE-TURN -- returns *BLACK* or *RED*
 ;;     GAME-OVER? -- 
 ;;     DEFAULT-POLICY  --  returns random legal move
 ;;     DO-MOVE!
@@ -123,7 +123,7 @@
 	  (setf best-val val)
 	  (setf best-mv-ind i)))
        
-       (t ; if it's white's turn...
+       (t ; if it's red's turn...
 	
 	; set val to neg-inf if the move hasn't been visited yet. otherwise,
 	; do the complicated equation.
@@ -173,9 +173,7 @@
 	(setf acc (append acc (list current-key chosen-mv)))
 	
 	; destructively do the chosen move
-	(do-move! game nil 
-		  (first (svref moves chosen-mv)) 
-		  (second (svref moves chosen-mv)))
+	(do-move! game nil chosen-mv)
 	
 	; move to next key/node
 	

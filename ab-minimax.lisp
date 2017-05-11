@@ -5,6 +5,14 @@
 ;;  ab-minimax.lisp
 ;; ====================================
 
+;;  STATS struct
+;; ---------------------------
+;;  Stats compiled during minimax search
+
+(defstruct stats
+  (num-moves-done 0)
+  (num-potential-moves 0))
+
 ;;  COMPUTE-MOVE
 ;; -------------------------------------------------------------
 ;;  INPUTS:  G, a CHECKERS struct
