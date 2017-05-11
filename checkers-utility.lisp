@@ -288,15 +288,6 @@
       (setf (checkers-whose-turn? game) *red*)
     (setf (checkers-whose-turn? game) *black*)))
 
-;; MUST-PASS? - naive implementation
-;; INPUT: GAME, a checkers struct
-;;        PLR, *red* or *black*
-;; OUTPUT: T if PLR has no legal moves
-
-(defmethod must-pass? ((game checkers))
-  (let ((leg-moves (legal-moves game)))
-    (= 1 (length leg-moves)))) ; only move is pass
-
 ;; ON-BOARD?
 ;; INPUT: R, C, ints representing a (potential) spot on a checkers board
 ;; OUTPUT: T if (r c) is a valid spot on the board
@@ -393,58 +384,3 @@
       
       ; return all possible jumps
       jumps)))
-
-;; LEGAL-MOVES
-;; INPUT: GAME, a checkers struct
-;; OUTPUT: a vector of the legal moves (in the form (r c)) for current player
-
-(defmethod legal-moves ((game checkers))
-  (let ((plr (whose-turn game))
-	(bored (checkers-board game))
-	(total-moves nil)
-	(curr-move nil))
-
-    (dotimes (r 8) ; for every slot on the board...
-      (dotimes (c 8)
-	
-	  (when (check-piece-plr (aref bored r c) plr)	    
-	    (let ((jumps (find-jumps game r c)))
-
-	      (cond
-	       (jumps ; jumps is non-nil
-		
-		(dolist (j jumps)
-		 nil))
-	       
-	       (t ; jumps is nil: have to accumulate all one space moves
-		
-		(let* ((forward-dir (get-forward-dir plr))
-		       (f-diags (get-diags r c forward-dir))
-		       (b-diags nil)
-		       (all-diags f-diags))
-		  
-		  ; if king, ALL-DIAGS must include backward diagonals
-		  (when (is-king? (aref bored r c))
-		    (setf b-diags (get-diags r c (* -1 forward-dir)))
-		  
-		    (setf all-diags 
-		      (make-array 4 :initial-contents (list 
-						       (svref f-diags 0)
-						       (svref f-diags 1)
-						       (svref b-diags 0)
-						       (svref b-diags 1)))))
-		  
-		  ; for every valid diagonal, add the path to it from (r c)
-		  ; to the total moves
-		  (dotimes (i (length all-diags))
-		    (let ((d (svref all-diags i)))
-		      
-		      (when (and d (null (aref bored (first d) (second d))))
-		
-			(setf total-moves 
-			  (cons 
-			   (make-array 2 :initial-contents (list (list r c) d))
-			   total-moves))))))))))))
-	      
-    (make-array ; include PASS in output vector.
-     (+ 1 (length total-moves)) :initial-contents (cons pass total-moves))))
