@@ -86,6 +86,39 @@
     ;; RETURN THE GAME!
     game))
 
+;;  DISPLAY FUNCTION
+;; ------------------------------------------------------------------------
+
+;; PRINT-CHECKERS
+;; used by the checkers struct to nicely display a game of checkers.
+
+(defun print-checkers (game str depth)
+  (declare (ignore depth))
+  
+  (let ((bored (checkers-board game))
+	(red-live (checkers-red-alive game))
+	(black-live (checkers-black-alive game))
+	(plr (whose-turn game)))
+    
+    (format str "    0 1 2 3 4 5 6 7~%")
+    (format str "  -------------------~%")
+    
+    (dotimes (r 8)
+      (format str "~A:  " r)
+      (dotimes (c 8)
+	(let ((elt (aref bored r c)))
+	  (if elt
+	      (format str "~A " (svref pieces elt))
+	    (format str "_ "))))
+      (format str "~%"))
+    
+    (format str "  -------------------~%")
+    
+    (format str "Red Alive: ~A, Black Alive: ~A~%" red-live black-live)
+    (format str "It's ~A's turn!~%"
+	    (if (= *black* plr) "black" "red"))))
+	 
+
 
 ;;  UTILITY FUNCTIONS
 ;; ------------------------------------------------------------------------
@@ -324,6 +357,32 @@
     ; left diag is always in index 0; right diag in index 1
     diags))
 
+;; GET-ALL-DIAGS
+;; INPUT: R, C, ints representing a slot on the game board
+;;        PLR, the player who owns the piece at (r c)
+;;        BORED, the current state of the game board
+;; OUTPUT: a vector of length 4 containing all valid diagonals for (r c)
+
+(defun get-all-diags (r c plr bored)
+  (let* ((forward-dir (get-forward-dir plr))
+	 (f-diags (get-diags r c forward-dir))
+	 (b-diags nil)
+	 (all-diags f-diags))
+    
+    ; if king, ALL-DIAGS must include backward diagonals
+    (when (is-king? (aref bored r c))
+      (setf b-diags (get-diags r c (* -1 forward-dir)))
+      
+      (setf all-diags 
+	(make-array 4 :initial-contents (list 
+					 (svref f-diags 0)
+					 (svref f-diags 1)
+					 (svref b-diags 0)
+					 (svref b-diags 1)))))
+    
+    all-diags))
+    
+
 ;; FIND-JUMPS
 ;; INPUT: GAME, a checkers struct
 ;;        R, C, ints representing a slot on the game board
@@ -345,6 +404,11 @@
 	 (jumps nil))
     
     (labels 
+	;; CHECK-DIAGS helper
+	;; INPUT: DIAGS, a vector of diagonal slots
+	;;        DIR, the appropriate ROW direction
+	;; OUTPUT: None
+	;; SIDE EFFECT: modifies JUMPS to include valid jumps in DIR
 	((check-diags (diags dir)
 	   (dotimes (i (length diags)) ; for each potential diagonal...
 	     (let* ((d (svref diags i))
@@ -356,9 +420,9 @@
 		   
 		   ; check if diag-piece belongs to the other player
 		   (when (or (and (= plr *red*) 
-				  (is-red-piece? diag-piece))
+				  (is-black-piece? diag-piece))
 			     (and (= plr *black*) 
-				  (is-black-piece? diag-piece)))
+				  (is-red-piece? diag-piece)))
 		     
 		     ; if so, calculate the new slot the token 
 		     ; at (r c) would occupy

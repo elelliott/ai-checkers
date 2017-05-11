@@ -139,28 +139,19 @@
 	    (let ((jumps (find-jumps game r c)))
 
 	      (cond
-	       (jumps ; jumps is non-nil
+	       (jumps ; jumps is non-nil -- at least one jump MUST be taken
 		
 		(dolist (j jumps)
-		 nil))
+		  
+		  ; for every valid jump, add the path to it from (r c)
+		  ; to the total moves
+		  (setf total-moves
+		    (cons (make-array 2 :initial-contents (list (list r c) j))
+			  total-moves))))
 	       
 	       (t ; jumps is nil: have to accumulate all one space moves
 		
-		(let* ((forward-dir (get-forward-dir plr))
-		       (f-diags (get-diags r c forward-dir))
-		       (b-diags nil)
-		       (all-diags f-diags))
-		  
-		  ; if king, ALL-DIAGS must include backward diagonals
-		  (when (is-king? (aref bored r c))
-		    (setf b-diags (get-diags r c (* -1 forward-dir)))
-		  
-		    (setf all-diags 
-		      (make-array 4 :initial-contents (list 
-						       (svref f-diags 0)
-						       (svref f-diags 1)
-						       (svref b-diags 0)
-						       (svref b-diags 1)))))
+		(let ((all-diags (get-all-diags r c plr bored)))
 		  
 		  ; for every valid diagonal, add the path to it from (r c)
 		  ; to the total moves
@@ -173,41 +164,6 @@
 			  (cons 
 			   (make-array 2 :initial-contents (list (list r c) d))
 			   total-moves))))))))))))
-	      
+    
     (make-array ; include PASS in output vector.
      (+ 1 (length total-moves)) :initial-contents (cons pass total-moves))))
-
-
-
-;;  DISPLAY FUNCTION
-;; ------------------------------------------------------------------------
-
-;; PRINT-CHECKERS
-;; used by the checkers struct to nicely display a game of checkers.
-
-(defun print-checkers (game str depth)
-  (declare (ignore depth))
-  
-  (let ((bored (checkers-board game))
-	(red-live (checkers-red-alive game))
-	(black-live (checkers-black-alive game))
-	(plr (whose-turn game)))
-    
-    (format str "    0 1 2 3 4 5 6 7~%")
-    (format str "  -------------------~%")
-    
-    (dotimes (r 8)
-      (format str "~A:  " r)
-      (dotimes (c 8)
-	(let ((elt (aref bored r c)))
-	  (if elt
-	      (format str "~A " (svref pieces elt))
-	    (format str "_ "))))
-      (format str "~%"))
-    
-    (format str "  -------------------~%")
-    
-    (format str "Red Alive: ~A, Black Alive: ~A~%" red-live black-live)
-    (format str "It's ~A's turn!~%"
-	    (if (= *black* plr) "black" "red"))))
-	 
