@@ -83,14 +83,60 @@
 	(red-kings (checkers-red-kings game))
 	(black-kings (checkers-black-kings game))
 	(red-value 0)
-	(black-value 0))
+	(black-value 0)
+	(player (whose-turn game)))
     
     ; kings are worth 5 additional points each
     (incf red-value (+ num-red (* 5 red-kings)))
     (incf black-value (+ num-black (* 5 black-kings)))
     
-    ;; To normalize between -1 and 1:
-    ;; If black has all 12 kings and red lost (best case), score is 72.
-    ;; If red has all 12 kings and black lost (worst case), score is -72
-    ;; Divide by 12 to restrict scores between -6 and 6
-    (/ (- black-value red-value) 12)))
+	(cond
+		;; If diff is 0:
+		((eq (- black-value red-value))
+			(cond
+				;; If black's turn:
+				((eq player *black*)
+					;; score becomes a little negative
+					(/ -5 12))
+					
+				;; Otherwise:
+				(t
+					;; score becomes a little positive
+					(/ 5 12))
+				))
+		;; Otherwise:
+		(t
+			;; return normalized score as usual
+			(/ (- black-value red-value) 12))
+	)
+	))
+
+
+
+;;  COMPETE-METHODS
+;; --------------------------------------------------
+;;  INPUTS:  BLACK-NUM-SIMS, the number of simulations for each of 
+;;           black's moves
+;;           BLACK-C, the exploration/exploitation constant used by black
+
+;;  OUTPUT:  Don't care
+;;  SIDE EFFECT:  Displays the entire game using UCT-SEARCH for black moves
+;;    and alpha/beta minimax for red moves to compute 
+;;    best moves for both players according to the specified parameters.
+
+(defun compete-methods
+    (black-num-sims black-c )
+  (let ((g (init-game)))
+    (while (not (game-over? g))
+      (cond
+       ((eq (whose-turn g) *black*)
+		(format t "BLACK'S TURN!~%")
+		(format t "~A~%" 
+		(apply #'do-move! g nil 
+		       (uct-search g black-num-sims black-c))))
+       (t
+		(format t "RED'S TURN!~%")
+		(format t "~A~%"
+		(apply #'do-move! g nil 
+		       (compute-move g 10))))
+       ))))
