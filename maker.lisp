@@ -16,6 +16,9 @@
 ;; USE THIS FUNCTION TO COMPILE AND LOAD ALL FILES
 
 (defun maker ()
+  ;; COMPILER FLAGS
+  (setq compiler:tail-call-self-merge-switch t)
+  (setq compiler:tail-call-non-self-merge-switch t) 
   (dolist (file *file-list*)
     (compile-file file)
     (load file)))

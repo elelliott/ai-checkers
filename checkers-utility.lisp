@@ -98,6 +98,8 @@
   (let ((bored (checkers-board game))
 	(red-live (checkers-red-alive game))
 	(black-live (checkers-black-alive game))
+	(red-kings (checkers-red-kings game))
+	(black-kings (checkers-black-kings game))
 	(plr (whose-turn game)))
     
     (format str "    0 1 2 3 4 5 6 7~%")
@@ -115,6 +117,7 @@
     (format str "  -------------------~%")
     
     (format str "Red Alive: ~A, Black Alive: ~A~%" red-live black-live)
+    (format str "Red Kings: ~A, Black Kings: ~A~%" red-kings black-kings)
     (format str "It's ~A's turn!~%"
 	    (if (= *black* plr) "black" "red"))))
 	 

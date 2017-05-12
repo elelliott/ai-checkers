@@ -18,7 +18,7 @@
 (defmethod random-move ((game checkers))
   (let* ((leg-moves (legal-moves game))
 	 (rand-int (random (length leg-moves))))
-
+    
     ; return the legal move at a random index
     (svref leg-moves rand-int)))
 
@@ -45,12 +45,14 @@
 ;;    and positive values mean black won
 
 (defmethod default-policy ((game checkers))
-  (let ((g (copy-game game)))
+  (let ((g (copy-game game))
+	(turns-left 50))
     
     ; perform random moves on the copy of the game until game is over
         
-    (while (not (game-over? g))
-      (do-random-move! g))
+    (while (and turns-left (not (game-over? g)))
+      (do-random-move! g)
+      (decf turns-left))
     
     ; game is over
     

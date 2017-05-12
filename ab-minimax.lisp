@@ -65,33 +65,35 @@
      (t ; otherwise...
       (incf (stats-num-potential-moves statty) (length moves))
       
-      (dolist (mv moves)
-	(apply #'do-move! g nil mv) ; DO the move!
+      (dotimes (i (length moves))
+	(let ((mv (svref moves i)))
+	  (do-move! g nil mv) ; DO the move!
 	
-	(let ((old-alpha new-alpha) ; save unaltered alpha val
-	      (comp-min ; save result of compute-min
-	       (compute-min g (1+ curr-depth) 
-			    new-alpha beta statty cutoff-depth)))
+	  (let ((old-alpha new-alpha) ; save unaltered alpha val
+		(comp-min ; save result of compute-min
+		 (compute-min g (1+ curr-depth) 
+			      new-alpha beta statty cutoff-depth)))
 	  
-	  (setf new-alpha ; new alpha val is max of old alpha & val of comp-min
-	    (max old-alpha comp-min))
+	    (setf new-alpha ; new alpha val is max of old alpha 
+	                    ; & val of comp-min
+	      (max old-alpha comp-min))
 	  
-	  (setf g (undo-move g)) ; UNDO the move!
-	  
-	  (when (< old-alpha new-alpha)	; found a better move
-	    (setf best-move mv))
-	  
-	  (incf (stats-num-moves-done statty) 1) ; increase moves done by 1
-	  
-	  (when (<= beta new-alpha) ; when parent beta <= new alpha
-	    ; can prune! don't do any more moves from here.
-	    (if (= curr-depth 0) ; return list of best move and alpha at root
-		(return-from compute-max (list best-move new-alpha))
-	        (return-from compute-max new-alpha))))) ; otherwise alpha val
-      
+	    (undo-move! g) ; UNDO the move!
+	    
+	    (when (< old-alpha new-alpha) ; found a better move
+	      (setf best-move mv))
+	    
+	    (incf (stats-num-moves-done statty) 1) ; increase moves done by 1
+	    
+	    (when (<= beta new-alpha) ; when parent beta <= new alpha
+				      ; can prune! don't do any more moves
+	      (if (= curr-depth 0) ; return list of best move and alpha at root
+		  (return-from compute-max (list best-move new-alpha))
+	        (return-from compute-max new-alpha)))))) ; otherwise alpha val
+	
       (if (= curr-depth 0) ; return list of best move and alpha if at root
 	  (list best-move new-alpha)
-	  new-alpha))))) ; otherwise simply return alpha val
+	new-alpha))))) ; otherwise simply return alpha val
 
 ;;  COMPUTE-MIN
 ;; -------------------------------------------------------
@@ -118,25 +120,43 @@
      (t ; otherwise... 
       (incf (stats-num-potential-moves statty) (length moves))
       
-      (dolist (mv moves)
-	(apply #'do-move! g nil mv) ; DO the move!
-	
-	(let ((old-beta new-beta) ; save unaltered beta
-	      (comp-max
-	       (compute-max g (1+ curr-depth) 
-			    alpha new-beta statty cutoff-depth)))
-
-	  (setf new-beta ; new-beta is min of old beta and val of comp-max
-	    (min old-beta comp-max))
-	
-	  (setf g (undo-move g)) ; UNDO the move!
+      (dotimes (i (length moves))
+	(let ((mv (svref moves i)))
+	  (do-move! g nil mv) ; DO the move!
 	  
-	  (incf (stats-num-moves-done statty) 1) ; increase moves done by 1
-	  
-	  (when (<= new-beta alpha) ; can prune! return new beta val.
-	    (return-from compute-min new-beta))))
+	  (let ((old-beta new-beta) ; save unaltered beta
+		(comp-max
+		 (compute-max g (1+ curr-depth) 
+			      alpha new-beta statty cutoff-depth)))
+	    
+	    (setf new-beta ; new-beta is min of old beta and val of comp-max
+	      (min old-beta comp-max))
+	    
+	    (undo-move! g)			; UNDO the move!
+	    
+	    (incf (stats-num-moves-done statty) 1) ; increase moves done by 1
+	    
+	    (when (<= new-beta alpha) ; can prune! return new beta val.
+	      (return-from compute-min new-beta)))))
       
       ; return beta value
       new-beta))))
 
+;;  COMPUTE-DO-AND-SHOW-N-MOVES
+;; ------------------------------------------
+;;  INPUTS:  G, a CHESS struct
+;;           N, a positive integer
+;;           CUTOFF-DEPTH, the cutoff depth for minimax
+;;  OUTPUT:  don't care
+;;  SIDE EFFECT:  Computes, does, and shows the results of N
+;;                moves generated using COMPUTE-MOVE.
+
+(defun compute-do-and-show-n-moves
+    (g n cutoff-depth)
+  (let ((mv nil))
+    (dotimes (i n)
+      (format t "~%~A~%" g)
+      (setf mv (compute-move g cutoff-depth))
+      (do-move! g nil mv))
+    (format t "~%~A~%" g)))
 

@@ -42,6 +42,11 @@
 	       (list (+ r1 (/ diff-r 2)) (+ c1 (/ diff-c 2)))
 	     nil))))
     
+    ; RETURN GAME IF MOVE IS PASS
+    (when (null (svref path 0))
+      (toggle-turn! game)
+      (return-from do-move! game))
+    
     (let* ((bored (checkers-board game))
 	   (plr (whose-turn game))
 	   (ploc (svref path 0)) ; previous/starting location
@@ -81,7 +86,7 @@
 	
 	; check if token should be a king; king it if so!
 	
-	(when (make-king? plr r)
+	(when (and (make-king? plr r) (not (is-king? piece)))
 	  (king-me game plr r c))
 	
 	; toggle the turn
@@ -90,13 +95,29 @@
 	; return the modified game
 	game)))))
       
-;; UNDO-MOVE
+;; UNDO-MOVE!
 ;; INPUT: GAME, a checkers struct
 ;; OUTPUT: a version of the game in which the last move has
 ;;         been undone.
 
-(defmethod undo-move ((game checkers))
-  (first (checkers-move-history game)))
+(defmethod undo-move! ((game checkers))
+  (let* ((new-g (first (checkers-move-history game)))
+	 (bored (checkers-board new-g))
+	 (red-alive (checkers-red-alive new-g))
+	 (black-alive (checkers-black-alive new-g))
+	 (red-kings (checkers-red-kings new-g))
+	 (black-kings (checkers-black-kings new-g))
+	 (turn (whose-turn new-g))
+	 (move-history (checkers-move-history new-g)))
+    
+    (setf (checkers-board game) bored)
+    (setf (checkers-red-alive game) red-alive)
+    (setf (checkers-black-alive game) black-alive)
+    (setf (checkers-red-kings game) red-kings)
+    (setf (checkers-black-kings game) black-kings)
+    (setf (checkers-whose-turn? game) turn)
+    (setf (checkers-move-history game) move-history)))
+    
 
 ;; MUST-PASS? - naive implementation
 ;; INPUT: GAME, a checkers struct
@@ -105,7 +126,7 @@
 
 (defmethod must-pass? ((game checkers))
   (let ((leg-moves (legal-moves game)))
-    (= 1 (length leg-moves)))) ; only move is pass
+    (null (svref (svref leg-moves 0) 0)))) ; only move is pass
 
 ;; GAME-OVER?
 ;; INPUT: GAME, a checkers struct
@@ -165,5 +186,6 @@
 			   (make-array 2 :initial-contents (list (list r c) d))
 			   total-moves))))))))))))
     
-    (make-array ; include PASS in output vector.
-     (+ 1 (length total-moves)) :initial-contents (cons pass total-moves))))
+    (if (null total-moves)
+	(make-array 1 :initial-element pass)
+        (make-array (length total-moves) :initial-contents total-moves))))

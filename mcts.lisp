@@ -102,7 +102,7 @@
 	(visits (mc-node-veck-visits nodey))
 	(scores (mc-node-veck-scores nodey))
 	(num-visits (mc-node-num-visits nodey)))
-
+    
     (dotimes (i (length moves))
        
       (cond
@@ -173,7 +173,7 @@
 	(setf acc (append acc (list current-key chosen-mv)))
 	
 	; destructively do the chosen move
-	(do-move! game nil chosen-mv)
+	(do-move! game nil (svref moves chosen-mv))
 	
 	; move to next key/node
 	
@@ -205,6 +205,7 @@
 ;;  SIDE EFFECT:  Updates the relevant nodes in the MC-TREE/HASHY
 
 (defun backup (hashy key-move-acc result)
+  
   (cond
    ; empty list? done -- do nothing
    ((null key-move-acc)
@@ -224,7 +225,7 @@
 	   (curr-node (gethash curr-key hashy))
 	   (visits (mc-node-veck-visits curr-node))
 	   (scores (mc-node-veck-scores curr-node)))
-            
+
       ; increase number of visits to this node
       (incf (mc-node-num-visits curr-node))
 
@@ -277,19 +278,22 @@
 
 (defun compete
     (black-num-sims black-c red-num-sims red-c)
-  (let ((g (init-game)))
-    (while (not (game-over? g))
+  (let ((g (init-game))
+	(turns-left 50))
+    (while (and turns-left (not (game-over? g)))
       (cond
        ((eq (whose-turn g) *black*)
 	(format t "BLACK'S TURN!~%")
 	(format t "~A~%" 
-		(apply #'do-move! g nil 
-		       (uct-search g black-num-sims black-c))))
+		(do-move! g nil 
+			  (uct-search g black-num-sims black-c))))
        (t
 	(format t "RED'S TURN!~%")
 	(format t "~A~%"
-		(apply #'do-move! g nil 
-		       (uct-search g red-num-sims red-c))))))))
+		(do-move! g nil 
+			  (uct-search g red-num-sims red-c)))))
+      
+      (decf turns-left))))
 
 
 
