@@ -280,7 +280,8 @@
     (black-num-sims black-c red-num-sims red-c)
   (let ((g (init-game))
 	(turns-left 50))
-    (while (and turns-left (not (game-over? g)))
+    (while (and (not (zerop turns-left))
+		(not (game-over? g)))
       (cond
        ((eq (whose-turn g) *black*)
 	(format t "BLACK'S TURN!~%")

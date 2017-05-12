@@ -160,3 +160,28 @@
       (do-move! g nil mv))
     (format t "~%~A~%" g)))
 
+;;  COMPETE-METHODS
+;; --------------------------------------------------
+;;  INPUTS:  BLACK-NUM-SIMS, the number of simulations for each of 
+;;           black's moves
+;;           BLACK-C, the exploration/exploitation constant used by black
+;;           CUTOFF-DEPTH, the cutoff depth used for red's moves
+;;  OUTPUT:  Don't care
+;;  SIDE EFFECT:  Displays the entire game using UCT-SEARCH for black moves
+;;    and alpha/beta minimax for red moves to compute 
+;;    best moves for both players according to the specified parameters.
+
+(defun compete-methods (black-num-sims black-c cutoff-depth)
+  (let ((g (init-game)))
+    (while (not (game-over? g))
+      (cond
+       ((eq (whose-turn g) *black*)
+	(format t "BLACK'S TURN!~%")
+	(format t "~A~%" 
+		(do-move! g nil 
+			  (uct-search g black-num-sims black-c))))
+       (t
+	(format t "RED'S TURN!~%")
+	(format t "~A~%"
+		(do-move! g nil 
+			  (compute-move g cutoff-depth))))))))
