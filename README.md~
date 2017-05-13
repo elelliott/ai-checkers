@@ -20,20 +20,8 @@ TO CREATE AND PLAY A GAME:
     coordinates of the piece you wish to move. Each subsequent (rj cj)
     is where you would place the token after a jump.
 4.  To see if the game is over, type (game-over? g).
-5.  To undo your last move, type (undo-move! g).
+5.  To undo your last move, type (setf g (undo-move g)).
 
-TO CALCULATE YOUR NEXT MOVE WITH MCTS:
-Run (uct-search g NUM-SIMS C) with your chosen values.
+TO CALCULATE YOUR NEXT MOVE:
 
-TO CALCULATE YOUR NEXT MOVE WITH A/B MINIMAX:
-Run (compute-move g CUTOFF-DEPTH). We recommend a cutoff-depth
-of no more than 10 for time reasons.
 
-TO RUN A GAME WITH MCTS:
-Run (compete NUM-BLACK-SIMS BLACK-C NUM-RED-SIMS RED-C).
-
-TO RUN A GAME WITH A/B MINIMAX:
-Run (compute-do-and-show-n-moves g NUM-TURNS CUTOFF-DEPTH).
-
-TO RUN BLACK WITH MCTS AND RED WITH A/B MINIMAX:
-Run (compete-methods NUM-BLACK-SIMS BLACK-C CUTOFF-DEPTH).
