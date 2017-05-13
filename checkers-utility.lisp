@@ -389,9 +389,10 @@
 ;; FIND-JUMPS
 ;; INPUT: GAME, a checkers struct
 ;;        R, C, ints representing a slot on the game board
+;;        KING?, T if working with king piece
 ;; OUTPUT: a list of possible jumps for the token at (r c), or nil
 
-(defmethod find-jumps ((game checkers) r c)
+(defmethod find-jumps ((game checkers) r c king?)
   (let* ((bored (checkers-board game))
 	 (plr (whose-turn game))
 	 ; the "forward" row modifier for plr (-1 or 1)
@@ -446,8 +447,48 @@
       (check-diags f-diags forward-dir)
       
       ; if king piece, check backward diagonals
-      (when (is-king? (aref bored r c))
+      (when king?
 	(check-diags b-diags backward-dir))
       
       ; return all possible jumps
       jumps)))
+
+;; FIND-JUMP-CHAINS
+;; INPUT: GAME, a checkers struct
+;;        R, C, ints representing a slot on the checkers board
+;;        KING?, T if working with king piece
+;; OUTPUT: a vector containing lists of lists
+;;         of the form (row col), representing 
+;;         a path of jumps from (r c).
+
+(defmethod find-jump-chains ((game checkers) r c king?)
+  (let* ((jumps (find-jumps game r c king?))
+	 (chains nil))
+    
+    (when jumps ; when there are jumps from (r c),
+      
+      (dolist (j jumps) ; for each one...
+	(let* ((chain-start (list r c))
+	       (chain-acc nil)
+	       (j-r (first j))
+	       (j-c (second j))
+	       ; find the chains from it
+	       (more-jumps (find-jump-chains game j-r j-c king?)))
+	      
+	      (dotimes (i (length more-jumps))
+		
+		; for every chain, add (r c) to the beginning
+		; and save the results in a list
+		(setf chain-acc (cons (cons chain-start 
+					    (svref more-jumps i))
+				      chain-acc)))
+	    
+	  (if chain-acc ; if there were chains accumulated,
+	    ; add them to the total chains  
+	    (setf chains (append chain-acc chains))
+	    ; otherwise, just add the path containing (r c) and j
+	    (setf chains (cons (list chain-start j)
+				 chains))))))
+
+    ; return the paths as a vector of lists of lists
+    (make-array (length chains) :initial-contents chains)))

@@ -145,47 +145,53 @@
 
 ;; LEGAL-MOVES
 ;; INPUT: GAME, a checkers struct
-;; OUTPUT: a vector of the legal moves (in the form (r c)) for current player
+;; OUTPUT: a vector of the vectors containing legal paths
 
 (defmethod legal-moves ((game checkers))
   (let ((plr (whose-turn game))
 	(bored (checkers-board game))
-	(total-moves nil)
-	(curr-move nil))
+	(total-moves nil))
 
-    (dotimes (r 8) ; for every slot on the board...
+    (dotimes (r 8) ; for every black slot on the board...
       (dotimes (c 8)
 	
-	  (when (check-piece-plr (aref bored r c) plr)	    
-	    (let ((jumps (find-jumps game r c)))
-
-	      (cond
-	       (jumps ; jumps is non-nil -- at least one jump MUST be taken
+	(when (or (and (evenp r) (oddp c))
+		  (and (evenp c) (oddp r)))
+	  
+	  (let ((piece (aref bored r c)))
+	    
+	    (when (check-piece-plr piece plr)	    
+	      (let ((jumps (find-jump-chains game r c (is-king? piece))))
 		
-		(dolist (j jumps)
+		(cond
+		 ((> (length jumps) 0)
+		  ; jumps is non-nil -- at least one jump MUST be taken
 		  
-		  ; for every valid jump, add the path to it from (r c)
-		  ; to the total moves
-		  (setf total-moves
-		    (cons (make-array 2 :initial-contents (list (list r c) j))
-			  total-moves))))
-	       
-	       (t ; jumps is nil: have to accumulate all one space moves
-		
-		(let ((all-diags (get-all-diags r c plr bored)))
-		  
-		  ; for every valid diagonal, add the path to it from (r c)
-		  ; to the total moves
-		  (dotimes (i (length all-diags))
-		    (let ((d (svref all-diags i)))
+		  (dotimes (i (length jumps))
+		    (let ((j (svref jumps i)))
 		      
-		      (when (and d (null (aref bored (first d) (second d))))
-		
-			(setf total-moves 
-			  (cons 
-			   (make-array 2 :initial-contents (list (list r c) d))
-			   total-moves))))))))))))
-    
+		      ; for every valid jump, add the path to it from (r c)
+		      ; to the total moves
+		      (setf total-moves
+			(cons (make-array (length j) :initial-contents j)
+			      total-moves)))))
+		 
+		 (t ; jumps is nil: have to accumulate all one space moves
+		  
+		  (let ((all-diags (get-all-diags r c plr bored)))
+		    
+		    ; for every valid diagonal, add the path to it from (r c)
+		    ; to the total moves
+		    (dotimes (i (length all-diags))
+		      (let ((d (svref all-diags i)))
+			
+			(when (and d (null (aref bored (first d) (second d))))
+			  
+			  (setf total-moves 
+			    (cons 
+			     (make-array 2 :initial-contents (list (list r c) d))
+			     total-moves))))))))))))))
+      
     (if (null total-moves)
 	(make-array 1 :initial-element pass)
         (make-array (length total-moves) :initial-contents total-moves))))
