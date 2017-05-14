@@ -10,7 +10,6 @@
 
 ;;  DO-MOVE!
 ;;  INPUTS:  GAME, a checkers struct
-;;           CHECK-LEGAL?, T or NIL
 ;;           PATH, a vector with elements (r c) representing a token's path
 ;;           of movement to its new location
 ;;  OUTPUT:  a modified version of GAME where the the piece at the first
@@ -20,7 +19,7 @@
 ;;    Note:  If CHECK-LEGAL? is T, then it only does the move if IS-LEGAL?
 ;;           succeeds.
 
-(defmethod do-move! ((game checkers) check-legal? path)
+(defmethod do-move! ((game checkers) path)
   (labels 
       ;; CALC-JUMPED-LOC helper
       ;; INPUT: POSN1, POSN2, lists of form (r c)
@@ -55,45 +54,38 @@
 	   (c (second endloc))
 	   (piece (aref bored (first ploc) (second ploc)))
 	   (move-history (checkers-move-history game)))
-      
-      (cond
-       ((and check-legal? (not (is-legal? game path)))
-	(format t "Not a legal move!~%")
-	(return-from do-move! game))
-       
-       (t ; if we arrive here, we can assume the path is legal
+      	
+      ; add current game state to move history before we modify it
 	
-	; add current game state to move history before we modify it
+      (setf (checkers-move-history game) 
+	(cons (copy-game game) move-history))
 	
-	(setf (checkers-move-history game) 
-	  (cons (copy-game game) move-history))
+      ; have to remove pieces between spaces listed on PATH
 	
-	; have to remove pieces between spaces listed on PATH
+      (dotimes (i (- (length path) 1))
 	
-	(dotimes (i (- (length path) 1))
+	(let* ((posn1 (svref path i))
+	       (posn2 (svref path (+ i 1)))
+	       (jumped (calc-jumped-loc posn1 posn2)))
 	  
-	  (let* ((posn1 (svref path i))
-		 (posn2 (svref path (+ i 1)))
-		 (jumped (calc-jumped-loc posn1 posn2)))
-	    
-	    (when jumped ; only remove token if something was jumped.
-	      (remove-token! game (first jumped) (second jumped)))))
+	  (when jumped ; only remove token if something was jumped.
+	    (remove-token! game (first jumped) (second jumped)))))
 	
-	; move token from starting position to final spot in path
-	; leave its king status temporarily unchanged
+      ; move token from starting position to final spot in path
+      ; leave its king status temporarily unchanged
 	
-	(move-token! game r c ploc plr (is-king? piece))
+      (move-token! game r c ploc plr (is-king? piece))
 	
-	; check if token should be a king; king it if so!
+      ; check if token should be a king; king it if so!
 	
-	(when (and (make-king? plr r) (not (is-king? piece)))
-	  (king-me game plr r c))
+      (when (and (make-king? plr r) (not (is-king? piece)))
+	(king-me game plr r c))
 	
-	; toggle the turn
-	(toggle-turn! game)
+      ; toggle the turn
+      (toggle-turn! game)
 	
-	; return the modified game
-	game)))))
+      ; return the modified game
+      game)))
       
 ;; UNDO-MOVE!
 ;; INPUT: GAME, a checkers struct
@@ -145,9 +137,63 @@
 
 ;; LEGAL-MOVES
 ;; INPUT: GAME, a checkers struct
-;; OUTPUT: a vector of the vectors containing legal paths
+;; OUTPUT: a vector of the vectors containing legal paths,
+;;         with moves containing no jump or one jump
 
 (defmethod legal-moves ((game checkers))
+  (let ((plr (whose-turn game))
+	(bored (checkers-board game))
+	(total-moves nil))
+
+    (dotimes (r 8) ; for every black slot on the board...
+      (dotimes (c 8)
+	
+	(when (or (and (evenp r) (oddp c))
+		  (and (evenp c) (oddp r)))
+	  
+	  (let ((piece (aref bored r c)))
+	    
+	    (when (check-piece-plr piece plr)	    
+	      (let ((jumps (find-jumps game r c (is-king? piece))))
+		
+		(cond
+		 (jumps
+		  ; jumps is non-nil -- at least one jump MUST be taken
+		  
+		  (dolist (j jumps)
+		      
+		    ; for every valid jump, add the path to it from (r c)
+		    ; to the total moves
+		    (setf total-moves
+		      (cons (make-array 2 :initial-contents (list (list r c) j))
+			    total-moves))))
+		 
+		 (t ; jumps is nil: have to accumulate all one space moves
+		  
+		  (let ((all-diags (get-all-diags r c plr bored)))
+		    
+		    ; for every valid diagonal, add the path to it from (r c)
+		    ; to the total moves
+		    (dotimes (i (length all-diags))
+		      (let ((d (svref all-diags i)))
+			
+			(when (and d (null (aref bored (first d) (second d))))
+			  
+			  (setf total-moves 
+			    (cons 
+			     (make-array 2 :initial-contents (list (list r c) d))
+			     total-moves))))))))))))))
+      
+    (if (null total-moves)
+	(make-array 1 :initial-element pass)
+      (make-array (length total-moves) :initial-contents total-moves))))
+
+;; LEGAL-MOVES-WITH-CHAINS
+;; INPUT: GAME, a checkers struct
+;; OUTPUT: a vector of the vectors containing legal paths,
+;;         including chained jumps
+
+(defmethod legal-moves-with-chains ((game checkers))
   (let ((plr (whose-turn game))
 	(bored (checkers-board game))
 	(total-moves nil))

@@ -12,10 +12,11 @@ TO COMPILE AND LOAD:
 TO CREATE AND PLAY A GAME:
 
 1.  (setf g (init-game)) creates a new game of checkers.
-2.  To see all legal moves, type (legal-moves g).
-3.  To do a move, type (do-move! g CHECK-LEGAL? PATH)
-    where CHECK-LEGAL? is T if you want to see if your move is legal,
-    and PATH is a vector of the form #((r0 c0) (r1 c1) ... (rk ck))
+2.  To see all legal moves, type (legal-moves g), or
+    (legal-moves-with-chains g) to see the legal moves that include
+    chained jumps.
+3.  To do a move, type (do-move! g PATH)
+    where PATH is a vector of the form #((r0 c0) (r1 c1) ... (rk ck))
     where each (rj cj) is a row-column pair. (r0 c0) should be the
     coordinates of the piece you wish to move. Each subsequent (rj cj)
     is where you would place the token after a jump.
@@ -37,3 +38,8 @@ Run (compute-do-and-show-n-moves g NUM-TURNS CUTOFF-DEPTH).
 
 TO RUN BLACK WITH MCTS AND RED WITH A/B MINIMAX:
 Run (compete-methods NUM-BLACK-SIMS BLACK-C CUTOFF-DEPTH).
+
+NOTE: (legal-moves-with-chains g) is not the default legal
+      moves function because when used with MCTS and A/B minimax
+      it leads to stack overflow. However, it can be used by
+      the player to view legal moves with chained jumps.

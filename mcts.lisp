@@ -173,7 +173,7 @@
 	(setf acc (append acc (list current-key chosen-mv)))
 	
 	; destructively do the chosen move
-	(do-move! game nil (svref moves chosen-mv))
+	(do-move! game (svref moves chosen-mv))
 	
 	; move to next key/node
 	
@@ -279,22 +279,30 @@
 (defun compete
     (black-num-sims black-c red-num-sims red-c)
   (let ((g (init-game))
-	(turns-left 50))
+	(turns-left 125))
     (while (and (not (zerop turns-left))
 		(not (game-over? g)))
       (cond
        ((eq (whose-turn g) *black*)
 	(format t "BLACK'S TURN!~%")
 	(format t "~A~%" 
-		(do-move! g nil 
+		(do-move! g  
 			  (uct-search g black-num-sims black-c))))
        (t
 	(format t "RED'S TURN!~%")
 	(format t "~A~%"
-		(do-move! g nil 
+		(do-move! g  
 			  (uct-search g red-num-sims red-c)))))
       
-      (decf turns-left))))
+      (decf turns-left))
+    
+    (cond
+     ((zerop turns-left)
+      (format t "125 turns have passed!~%"))
+     ((> (eval-func g) 0)
+      (format t "Black won!~%"))
+     (t
+      (format t "Red won!~%")))))
 
 
 

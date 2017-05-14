@@ -67,7 +67,7 @@
       
       (dotimes (i (length moves))
 	(let ((mv (svref moves i)))
-	  (do-move! g nil mv) ; DO the move!
+	  (do-move! g mv) ; DO the move!
 	
 	  (let ((old-alpha new-alpha) ; save unaltered alpha val
 		(comp-min ; save result of compute-min
@@ -122,7 +122,7 @@
       
       (dotimes (i (length moves))
 	(let ((mv (svref moves i)))
-	  (do-move! g nil mv) ; DO the move!
+	  (do-move! g mv) ; DO the move!
 	  
 	  (let ((old-beta new-beta) ; save unaltered beta
 		(comp-max
@@ -157,7 +157,7 @@
     (dotimes (i n)
       (format t "~%~A~%" g)
       (setf mv (compute-move g cutoff-depth))
-      (do-move! g nil mv))
+      (do-move! g mv))
     (format t "~%~A~%" g)))
 
 ;;  COMPETE-METHODS
@@ -172,16 +172,20 @@
 ;;    best moves for both players according to the specified parameters.
 
 (defun compete-methods (black-num-sims black-c cutoff-depth)
-  (let ((g (init-game)))
-    (while (not (game-over? g))
+  (let ((g (init-game))
+	(turns-left 125))
+    (while (and (not (game-over? g))
+		(not (zerop turns-left)))
       (cond
        ((eq (whose-turn g) *black*)
 	(format t "BLACK'S TURN!~%")
 	(format t "~A~%" 
-		(do-move! g nil 
+		(do-move! g 
 			  (uct-search g black-num-sims black-c))))
        (t
 	(format t "RED'S TURN!~%")
 	(format t "~A~%"
-		(do-move! g nil 
-			  (compute-move g cutoff-depth))))))))
+		(do-move! g 
+		  (compute-move g cutoff-depth)))))
+      
+      (decf turns-left))))

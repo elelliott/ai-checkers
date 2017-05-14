@@ -33,7 +33,7 @@
 (defmethod do-random-move! ((game checkers))
   (let* ((rand-path (random-move game)))
         
-    (do-move! game nil rand-path)))
+    (do-move! game rand-path)))
 
 
 ;;  DEFAULT-POLICY
